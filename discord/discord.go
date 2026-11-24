@@ -92,12 +92,9 @@ func (r Renderer) Message(s *a2ui.Surface) ([]any, error) {
 			}
 			inCard, card = false, nil
 		case chatui.Text:
-			t := escape(p.Text)
-			switch {
-			case p.Title:
-				t = "**" + t + "**"
-			case p.Caption:
-				t = "-# " + t
+			t := markdownOf(p.Lines, p.Title)
+			if p.Caption {
+				t = "-# " + strings.ReplaceAll(t, "\n", "\n-# ")
 			}
 			add(text(t))
 		case chatui.Divider:
@@ -372,4 +369,37 @@ func clip(s string, n int) string {
 		return s
 	}
 	return string(r[:n-1]) + "…"
+}
+
+// markdownOf draws a Text's lines in Discord's markdown: **bold**, *italic*, `code`, [words](link), "> " for quoted
+// lines; all of it bold for a heading.
+func markdownOf(lines []chatui.Line, heading bool) string {
+	var b strings.Builder
+	for i, l := range lines {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		if l.Quote {
+			b.WriteString("> ")
+		}
+		for _, sp := range l.Spans {
+			var t string
+			switch {
+			case sp.Code:
+				t = "`" + strings.ReplaceAll(sp.Text, "`", "'") + "`"
+			case sp.Link != "":
+				t = "[" + escape(sp.Text) + "](" + strings.NewReplacer("(", "%28", ")", "%29").Replace(sp.Link) + ")"
+			default:
+				t = escape(sp.Text)
+			}
+			if sp.Italic {
+				t = "*" + t + "*"
+			}
+			if (sp.Bold || heading) && strings.TrimSpace(t) != "" {
+				t = "**" + t + "**"
+			}
+			b.WriteString(t)
+		}
+	}
+	return b.String()
 }

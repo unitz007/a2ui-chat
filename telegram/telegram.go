@@ -72,7 +72,7 @@ func (r Renderer) Message(s *a2ui.Surface) (Message, error) {
 	for _, p := range parts {
 		switch p.Kind {
 		case chatui.Text:
-			t := html.EscapeString(p.Text)
+			t := htmlOf(p.Lines)
 			switch {
 			case p.Title:
 				t = "<b>" + t + "</b>"
@@ -214,4 +214,44 @@ func orValue(s string) string {
 		return "Value"
 	}
 	return s
+}
+
+// htmlOf draws a Text's lines in Telegram's HTML: <b>, <i>, <code>, <a href>, and quoted lines together in one
+// <blockquote>.
+func htmlOf(lines []chatui.Line) string {
+	var b strings.Builder
+	quoted := false
+	for i, l := range lines {
+		if l.Quote && !quoted {
+			if i > 0 {
+				b.WriteByte('\n')
+			}
+			b.WriteString("<blockquote>")
+		} else if !l.Quote && quoted {
+			b.WriteString("</blockquote>\n")
+		} else if i > 0 {
+			b.WriteByte('\n')
+		}
+		quoted = l.Quote
+		for _, sp := range l.Spans {
+			t := html.EscapeString(sp.Text)
+			switch {
+			case sp.Code:
+				t = "<code>" + t + "</code>"
+			case sp.Link != "":
+				t = `<a href="` + html.EscapeString(sp.Link) + `">` + t + "</a>"
+			}
+			if sp.Italic {
+				t = "<i>" + t + "</i>"
+			}
+			if sp.Bold {
+				t = "<b>" + t + "</b>"
+			}
+			b.WriteString(t)
+		}
+	}
+	if quoted {
+		b.WriteString("</blockquote>")
+	}
+	return b.String()
 }

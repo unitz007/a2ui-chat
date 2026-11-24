@@ -51,14 +51,11 @@ func (r Renderer) Message(s *a2ui.Surface) ([]any, string, error) {
 	for i, p := range parts {
 		switch p.Kind {
 		case chatui.Text:
-			t := escape(p.Text)
-			words = append(words, p.Text)
-			switch {
-			case p.Caption:
+			words = append(words, chatui.Plain(p.Text))
+			t := mrkdwnOf(p.Lines, p.Title)
+			if p.Caption {
 				blocks = append(blocks, map[string]any{"type": "context", "elements": []any{mrkdwn(t)}})
-			case p.Title:
-				blocks = append(blocks, section("*"+t+"*"))
-			default:
+			} else {
 				blocks = append(blocks, section(t))
 			}
 		case chatui.Divider:
@@ -410,4 +407,35 @@ func clip(s string, n int) string {
 		return s
 	}
 	return string(r[:n-1]) + "…"
+}
+
+// mrkdwnOf draws a Text's lines in Slack's mrkdwn: *bold*, _italic_, `code`, <link|words>, "> " for quoted lines; all
+// of it bold for a heading.
+func mrkdwnOf(lines []chatui.Line, heading bool) string {
+	var b strings.Builder
+	for i, l := range lines {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		if l.Quote {
+			b.WriteString("> ")
+		}
+		for _, sp := range l.Spans {
+			t := escape(sp.Text)
+			switch {
+			case sp.Link != "":
+				t = "<" + strings.NewReplacer("|", "%7C", ">", "%3E").Replace(sp.Link) + "|" + t + ">"
+			case sp.Code:
+				t = "`" + t + "`"
+			}
+			if sp.Italic {
+				t = "_" + t + "_"
+			}
+			if (sp.Bold || heading) && strings.TrimSpace(t) != "" {
+				t = "*" + t + "*"
+			}
+			b.WriteString(t)
+		}
+	}
+	return b.String()
 }

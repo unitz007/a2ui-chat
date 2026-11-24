@@ -70,7 +70,8 @@ does the sending.
 
 | A2UI | Slack | Discord | Telegram |
 |---|---|---|---|
-| Text | section (caption: context) | text display (caption: `-#`) | HTML text |
+| Text | section (caption: context; h1–h5 bold) | text display (caption: `-#`; h1–h5 bold) | HTML text (h1–h5 bold) |
+| Text's Markdown: **bold**, *italic*, `code`, [links](https://…), `> ` quoted lines | mrkdwn (`*b*`, `_i_`, `<url\|words>`, `>`) | Discord markdown | `<b>`, `<i>`, `<code>`, `<a>`, `<blockquote>` |
 | Card | its parts in order | container, with an accent colour | its parts in order |
 | Row, Column, List (with templates), Tabs, Modal | flattened in order | flattened in order | flattened in order |
 | Image | image block | media gallery | link |

@@ -29,8 +29,11 @@ const (
 // Part is one thing to show, in order.
 type Part struct {
 	Kind Kind
-	// Text: its words; Caption is smaller print (a Text's caption variant), Title a tab's or card's title.
+	// Text: its words as written (Markdown and all); Lines are them read (markdown.go) for a renderer to draw: bold,
+	// italic, code, links, quoted lines. Caption is smaller print (a Text's caption variant), Title a heading (h1 to h5)
+	// or a tab's title.
 	Text    string
+	Lines   []Line
 	Caption bool
 	Title   bool
 	// Image: its address and what it shows.
@@ -102,7 +105,9 @@ func walk(s *a2ui.Surface, n *a2ui.Node, out *[]Part) {
 	switch n.Type {
 	case "Text":
 		if t := strings.TrimSpace(s.String(p["text"], sc)); t != "" {
-			*out = append(*out, Part{Kind: Text, Text: t, Caption: p["variant"] == "caption"})
+			v, _ := p["variant"].(string)
+			title := len(v) == 2 && v[0] == 'h' && v[1] >= '1' && v[1] <= '5'
+			*out = append(*out, Part{Kind: Text, Text: t, Lines: Lines(t), Caption: v == "caption", Title: title})
 		}
 		return
 	case "Image":
@@ -156,7 +161,7 @@ func walk(s *a2ui.Surface, n *a2ui.Node, out *[]Part) {
 	case "Tabs":
 		for i, c := range n.Children {
 			if i < len(n.Tabs) && n.Tabs[i] != "" {
-				*out = append(*out, Part{Kind: Text, Text: n.Tabs[i], Title: true})
+				*out = append(*out, Part{Kind: Text, Text: n.Tabs[i], Lines: Lines(n.Tabs[i]), Title: true})
 			}
 			walk(s, c, out)
 		}
