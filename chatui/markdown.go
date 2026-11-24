@@ -25,6 +25,13 @@ type Span struct {
 
 var inline = regexp.MustCompile("\\*\\*([^*\\n]+?)\\*\\*|`([^`\\n]+)`|\\[([^\\]\\n]+)\\]\\((https?://[^)\\s]+)\\)|(?:^|[\\s(])\\*([^*\\s][^*\\n]*?)\\*(?:$|[\\s.,;:!?)])|(?:^|[\\s(])_([^_\\s][^_\\n]*?)_(?:$|[\\s.,;:!?)])")
 
+// escaped are the characters a backslash keeps as written ("\\*" is a star, not bold), each held as a private-use
+// character while the line is read.
+var (
+	hold    = strings.NewReplacer(`\\`, "\uE000", `\*`, "\uE001", `\_`, "\uE002", "\\`", "\uE003", `\[`, "\uE004", `\]`, "\uE005")
+	release = strings.NewReplacer("\uE000", `\`, "\uE001", "*", "\uE002", "_", "\uE003", "`", "\uE004", "[", "\uE005", "]")
+)
+
 // Lines reads a Text's words into lines of pieces.
 func Lines(text string) []Line {
 	var out []Line
@@ -35,7 +42,10 @@ func Lines(text string) []Line {
 		} else if raw == ">" {
 			l.Quote, raw = true, ""
 		}
-		l.Spans = spans(raw)
+		l.Spans = spans(hold.Replace(raw))
+		for i := range l.Spans {
+			l.Spans[i].Text = release.Replace(l.Spans[i].Text)
+		}
 		out = append(out, l)
 	}
 	return out

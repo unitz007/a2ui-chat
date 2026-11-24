@@ -24,6 +24,9 @@ func TestLines(t *testing.T) {
 	if l := Lines("[bad](javascript:alert(1))"); len(l[0].Spans) != 1 || l[0].Spans[0].Link != "" {
 		t.Errorf("only web links: %+v", l[0].Spans)
 	}
+	if l := Lines(`branch fix\_login\_bug, 2\*3, \[draft\]`); len(l[0].Spans) != 1 || l[0].Spans[0].Text != "branch fix_login_bug, 2*3, [draft]" {
+		t.Errorf("backslash escapes: %+v", l[0].Spans)
+	}
 	if Plain("**Go** [post](https://x.y)\n> quoted") != "Go post\nquoted" {
 		t.Errorf("plain: %q", Plain("**Go** [post](https://x.y)\n> quoted"))
 	}
